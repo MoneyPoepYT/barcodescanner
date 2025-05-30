@@ -1,91 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Barcodes Generator</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      color: #333;
-      text-align: center;
-      padding: 20px;
-    }
-
-    h2 {
-      color: #0066cc;
-    }
-
-    form {
-      margin-bottom: 20px;
-    }
-
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 5px;
-    }
-
-    .barcode-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: white;
-      padding: 15px;
-      margin: 10px auto;
-      width: 300px;
-      border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
-
-    .barcode-image {
-      margin: 10px 0;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .delete {
-      background: #ff4d4d;
-      color: white;
-      border: none;
-    }
-
-    .print {
-      background: #4CAF50;
-      color: white;
-      border: none;
-    }
-
-    .edit {
-      background: #ffa500;
-      color: white;
-      border: none;
-    }
-
-    .message {
-      font-style: italic;
-      color: #555;
-      margin-top: 5px;
-    }
-  </style>
+  <title>Barcodes beheren</title>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <style>
+    body { font-family: Arial; background: #f9f9f9; padding: 20px; text-align: center; }
+    input, button { margin: 5px; padding: 10px; }
+    .barcode-container { background: white; margin: 15px auto; padding: 10px; width: 300px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  </style>
 </head>
 <body>
-  <h2>🎯 Barcode Generator met Bericht</h2>
+  <h2>📦 Barcode aanmaken</h2>
 
   <form id="barcode-form">
-    <input type="text" id="barcode-input" placeholder="Voer code of naam in" required>
-    <button type="submit">➕ Maak barcode</button>
+    <input type="text" id="code-input" placeholder="Code of productnaam" required>
+    <input type="text" id="message-input" placeholder="Bericht of actie bij scannen">
+    <button type="submit">➕ Barcode maken</button>
   </form>
 
   <div id="barcode-list"></div>
 
   <script>
     const form = document.getElementById("barcode-form");
+    const codeInput = document.getElementById("code-input");
+    const messageInput = document.getElementById("message-input");
     const list = document.getElementById("barcode-list");
-    const input = document.getElementById("barcode-input");
 
     let barcodes = JSON.parse(localStorage.getItem("barcodes")) || [];
 
@@ -93,73 +33,47 @@
       localStorage.setItem("barcodes", JSON.stringify(barcodes));
     }
 
-    function createBarcodeElement(entry) {
-      const container = document.createElement("div");
-      container.className = "barcode-container";
-
-      const canvas = document.createElement("canvas");
-      canvas.className = "barcode-image";
-      JsBarcode(canvas, entry.code, { format: "CODE128", displayValue: true });
-
-      const messageText = document.createElement("div");
-      messageText.className = "message";
-      messageText.textContent = entry.message ? `📢 Bericht: ${entry.message}` : "📢 Geen bericht ingesteld.";
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "🗑 Verwijder";
-      deleteBtn.className = "delete";
-      deleteBtn.onclick = () => {
-        barcodes = barcodes.filter(b => b.code !== entry.code);
-        saveToStorage();
-        container.remove();
-      };
-
-      const printBtn = document.createElement("button");
-      printBtn.textContent = "🖨 Print";
-      printBtn.className = "print";
-      printBtn.onclick = () => {
-        const w = window.open();
-        w.document.write(`<img src="${canvas.toDataURL()}" onload="window.print();window.close()">`);
-      };
-
-      const editBtn = document.createElement("button");
-      editBtn.textContent = "✏️ Bewerk bericht";
-      editBtn.className = "edit";
-      editBtn.onclick = () => {
-        const nieuw = prompt("Voer een bericht in voor deze barcode:", entry.message || "");
-        if (nieuw !== null) {
-          entry.message = nieuw;
-          messageText.textContent = nieuw ? `📢 Bericht: ${nieuw}` : "📢 Geen bericht ingesteld.";
-          saveToStorage();
-        }
-      };
-
-      container.appendChild(canvas);
-      container.appendChild(messageText);
-      container.appendChild(deleteBtn);
-      container.appendChild(printBtn);
-      container.appendChild(editBtn);
-      list.appendChild(container);
-    }
-
-    function renderAll() {
+    function renderBarcodes() {
       list.innerHTML = "";
-      barcodes.forEach(createBarcodeElement);
+      barcodes.forEach(({ code, message }) => {
+        const div = document.createElement("div");
+        div.className = "barcode-container";
+
+        const canvas = document.createElement("canvas");
+        JsBarcode(canvas, code, { format: "CODE128", displayValue: true });
+
+        const msg = document.createElement("p");
+        msg.textContent = "📝 Bericht: " + (message || "Geen");
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑 Verwijder";
+        delBtn.onclick = () => {
+          barcodes = barcodes.filter(b => b.code !== code);
+          saveToStorage();
+          renderBarcodes();
+        };
+
+        div.appendChild(canvas);
+        div.appendChild(msg);
+        div.appendChild(delBtn);
+        list.appendChild(div);
+      });
     }
 
-    form.addEventListener("submit", (e) => {
+    form.onsubmit = (e) => {
       e.preventDefault();
-      const value = input.value.trim();
-      if (value && !barcodes.some(b => b.code === value)) {
-        const newEntry = { code: value, message: "" };
-        barcodes.push(newEntry);
-        saveToStorage();
-        createBarcodeElement(newEntry);
-        input.value = "";
-      }
-    });
+      const code = codeInput.value.trim();
+      const message = messageInput.value.trim();
+      if (!code || barcodes.find(b => b.code === code)) return;
 
-    renderAll();
+      barcodes.push({ code, message });
+      saveToStorage();
+      renderBarcodes();
+      codeInput.value = "";
+      messageInput.value = "";
+    };
+
+    renderBarcodes();
   </script>
 </body>
 </html>
