@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Barcode Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Dynamsoft Barcode Library -->
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@10.4.3100/dist/dbr.bundle.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: #0066cc;
+      padding: 15px;
+      text-align: center;
+    }
+
+    header a {
+      color: white;
+      font-size: 18px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    h2 {
+      margin: 20px 0;
+      color: #0066cc;
+    }
+
+    #camera-view-container {
+      width: 90%;
+      max-width: 600px;
+      height: 400px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    #results {
+      background: white;
+      padding: 15px;
+      width: 90%;
+      max-width: 600px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      font-size: 16px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="barcodes.html">➕ Ga naar opgeslagen barcodes</a>
+  </header>
+
+  <h2>📷 Scan een barcode</h2>
+
+  <div id="camera-view-container"></div>
+  <pre id="results">Wacht op scanresultaten...</pre>
+
+  <script>
+    (async () => {
+      // Initialiseer de licentie (vervang met je echte licentie als je die hebt)
+      Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+
+      const cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+      const cameraView = await Dynamsoft.DCE.CameraView.createInstance();
+      const cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
+
+      document.getElementById("camera-view-container").appendChild(cameraView.getUIElement());
+
+      cvRouter.setInput(cameraEnhancer);
+
+      const resultsContainer = document.getElementById("results");
+      const resultReceiver = new Dynamsoft.CVR.CapturedResultReceiver();
+
+      resultReceiver.onCapturedResultReceived = (result) => {
+        if (result.barcodeResultItems?.length) {
+          resultsContainer.textContent = '';
+          for (let item of result.barcodeResultItems) {
+            resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
+          }
+        }
+      };
+
+      cvRouter.addResultReceiver(resultReceiver);
+
+      await cameraEnhancer.open();
+      await cvRouter.startCapturing("ReadSingleBarcode");
+    })();
+  </script>
+</body>
+</html>
