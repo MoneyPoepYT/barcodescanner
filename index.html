@@ -20,42 +20,40 @@
   <div id="camera-view-container"></div>
   <pre id="results">📄 Scanresultaten verschijnen hier...</pre>
 
-  <script>
-    (async () => {
-      Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+<script>
+(async () => {
+  Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
 
-      const cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
-      const cameraView = await Dynamsoft.DCE.CameraView.createInstance();
-      const cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
-      document.getElementById("camera-view-container").appendChild(cameraView.getUIElement());
+  const cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+  const cameraView = await Dynamsoft.DCE.CameraView.createInstance();
+  const cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
+  document.getElementById("camera-view-container").appendChild(cameraView.getUIElement());
 
-      cvRouter.setInput(cameraEnhancer);
+  cvRouter.setInput(cameraEnhancer);
 
-      const resultsContainer = document.getElementById("results");
-      const barcodes = JSON.parse(localStorage.getItem("barcodes")) || [];
+  const barcodes = await fetch("barcodes.json").then(res => res.json());
+  const resultsContainer = document.getElementById("results");
 
-      const resultReceiver = new Dynamsoft.CVR.CapturedResultReceiver();
-      resultReceiver.onCapturedResultReceived = (result) => {
-        if (result.barcodeResultItems?.length) {
-          const item = result.barcodeResultItems[0];
-          const code = item.text;
-          const format = item.formatString;
+  const resultReceiver = new Dynamsoft.CVR.CapturedResultReceiver();
+  resultReceiver.onCapturedResultReceived = (result) => {
+    if (result.barcodeResultItems?.length) {
+      const item = result.barcodeResultItems[0];
+      const code = item.text;
+      const match = barcodes.find(b => b.code === code);
 
-          resultsContainer.textContent = `${format} ➜ ${code}`;
+      resultsContainer.textContent = `Gescand: ${code}`;
+      if (match && match.message) {
+        alert("📢 Bericht: " + match.message);
+      } else {
+        alert("📭 Geen actie gevonden.");
+      }
+    }
+  };
 
-          const match = barcodes.find(b => b.code === code);
-          if (match && match.message) {
-            alert("📢 Bericht bij barcode: " + match.message);
-          } else {
-            alert("📭 Geen actie/bericht gevonden.");
-          }
-        }
-      };
-
-      cvRouter.addResultReceiver(resultReceiver);
-      await cameraEnhancer.open();
-      await cvRouter.startCapturing("ReadSingleBarcode");
-    })();
-  </script>
+  cvRouter.addResultReceiver(resultReceiver);
+  await cameraEnhancer.open();
+  await cvRouter.startCapturing("ReadSingleBarcode");
+})();
+</script>
 </body>
 </html>
