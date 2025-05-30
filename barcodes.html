@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Barcodes beheren</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #0066cc;
+    }
+
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .barcode-container {
+      background: white;
+      margin: 15px auto;
+      padding: 15px;
+      width: 300px;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+
+    .message {
+      font-style: italic;
+      color: #333;
+      margin: 5px 0;
+    }
+
+    .barcode-buttons button {
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>➕ Barcode toevoegen</h2>
+  <input type="text" id="barcode-input" placeholder="Code of naam" required>
+  <input type="text" id="message-input" placeholder="Bericht bij scannen">
+  <button onclick="addBarcode()">Toevoegen</button>
+
+  <div id="barcode-list"></div>
+
+  <script>
+    let barcodes = JSON.parse(localStorage.getItem("barcodes") || "[]");
+
+    function saveBarcodes() {
+      localStorage.setItem("barcodes", JSON.stringify(barcodes));
+    }
+
+    function renderBarcodes() {
+      const list = document.getElementById("barcode-list");
+      list.innerHTML = "";
+
+      barcodes.forEach((b, i) => {
+        const container = document.createElement("div");
+        container.className = "barcode-container";
+
+        const canvas = document.createElement("canvas");
+        JsBarcode(canvas, b.code, { format: "CODE128", displayValue: true });
+
+        const msg = document.createElement("div");
+        msg.className = "message";
+        msg.textContent = b.message || "(Geen bericht ingesteld)";
+
+        const btns = document.createElement("div");
+        btns.className = "barcode-buttons";
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "✏️ Edit";
+        editBtn.onclick = () => {
+          const newMsg = prompt("Nieuw bericht voor deze barcode:", b.message);
+          if (newMsg !== null) {
+            barcodes[i].message = newMsg;
+            saveBarcodes();
+            renderBarcodes();
+          }
+        };
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑 Verwijder";
+        delBtn.onclick = () => {
+          barcodes.splice(i, 1);
+          saveBarcodes();
+          renderBarcodes();
+        };
+
+        btns.appendChild(editBtn);
+        btns.appendChild(delBtn);
+        container.appendChild(canvas);
+        container.appendChild(msg);
+        container.appendChild(btns);
+        list.appendChild(container);
+      });
+    }
+
+    function addBarcode() {
+      const code = document.getElementById("barcode-input").value.trim();
+      const message = document.getElementById("message-input").value.trim();
+
+      if (code) {
+        barcodes.push({ code, message });
+        saveBarcodes();
+        renderBarcodes();
+        document.getElementById("barcode-input").value = "";
+        document.getElementById("message-input").value = "";
+      }
+    }
+
+    renderBarcodes();
+  </script>
+</body>
+</html>
