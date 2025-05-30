@@ -4,58 +4,81 @@
   <meta charset="UTF-8">
   <title>Barcode Scanner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Dynamsoft Barcode Library -->
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@10.4.3100/dist/dbr.bundle.js"></script>
+  
   <style>
     body {
-      font-family: sans-serif;
+      margin: 0;
+      font-family: Arial, sans-serif;
       background: #f0f2f5;
-      text-align: center;
-      padding: 20px;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     header {
+      width: 100%;
       background: #0066cc;
-      padding: 10px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    header a {
       color: white;
+      font-size: 18px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    h2 {
+      margin: 20px 0;
+      color: #0066cc;
     }
 
     #camera-view-container {
       width: 90%;
       max-width: 600px;
       height: 400px;
-      margin: 20px auto;
+      margin-bottom: 20px;
       border-radius: 10px;
       overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
 
     #results {
       background: white;
       padding: 15px;
+      width: 90%;
+      max-width: 600px;
       border-radius: 8px;
-      font-size: 18px;
-      margin-top: 20px;
-      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      font-size: 16px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
   <header>
-    <a href="barcodes.html" style="color:white;">➕ Naar barcodes beheren</a>
+    <a href="barcodes.html">➕ Ga naar opgeslagen barcodes</a>
   </header>
 
   <h2>📷 Scan een barcode</h2>
+
   <div id="camera-view-container"></div>
-  <div id="results">Wacht op scan...</div>
+  <pre id="results">Wacht op scanresultaten...</pre>
 
   <script>
-    const savedBarcodes = JSON.parse(localStorage.getItem("barcodes") || "[]");
-
     (async () => {
+      // Initialiseer de licentie (vervang met je echte licentie als je die hebt)
       Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
 
       const cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
       const cameraView = await Dynamsoft.DCE.CameraView.createInstance();
       const cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
+
       document.getElementById("camera-view-container").appendChild(cameraView.getUIElement());
 
       cvRouter.setInput(cameraEnhancer);
@@ -65,17 +88,15 @@
 
       resultReceiver.onCapturedResultReceived = (result) => {
         if (result.barcodeResultItems?.length) {
-          const scannedText = result.barcodeResultItems[0].text;
-          const match = savedBarcodes.find(b => b.code === scannedText);
-          if (match) {
-            resultsContainer.textContent = `📦 ${match.code} → ${match.message || "(Geen bericht)"}`;
-          } else {
-            resultsContainer.textContent = `⚠️ Onbekende barcode: ${scannedText}`;
+          resultsContainer.textContent = '';
+          for (let item of result.barcodeResultItems) {
+            resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
           }
         }
       };
 
       cvRouter.addResultReceiver(resultReceiver);
+
       await cameraEnhancer.open();
       await cvRouter.startCapturing("ReadSingleBarcode");
     })();
